@@ -70,11 +70,19 @@ control MyIngress(inout headers hdr, inout metadata meta,
 
 ### Testing
 Your code should work for the following testing. These are also good steps for debugging.
-1. Testing connectivity:
+1. Run your `p4src/flowlet_switching.p4`
+```
+sudo p4run --conf topology/p4app_fat_flowlet.json
+```
+2. Start your controller
+```
+python controller/controller_flowlet.py
+```
+3. Testing connectivity:
 - Run `pingall`.
-2. Testing ECMP:
+4. Testing ECMP:
 - Run `sudo python3 tests/validate_ecmp.py`. 
-3. Testing Flowlet ECMP:
+5. Testing Flowlet ECMP:
 - Run `sudo python3 tests/validate_flowlet.py`. 
 
 
