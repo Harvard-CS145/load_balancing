@@ -9,6 +9,7 @@
 
 - Project 5 will inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from project 3.
 - We encourage you to revisit `p4_explanation.md` in project 3 for references if you incur P4 related questions in this project.
+- Run `git submodule update --init --recursive` before you start
 
 ## Introduction
 
