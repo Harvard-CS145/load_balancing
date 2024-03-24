@@ -84,18 +84,19 @@ control MyIngress(inout headers hdr,
 
             // if this is determinted as a new flowlet...
             if (standard_metadata.ingress_global_timestamp - previous_timestamp > FLOWLET_TIME_GAP)  {
-                // Create new flowlet id and write hash_index to the register
+                // Create new flowlet id to calculate the hash_index,
+                // and write hash_index to the corresponding switch register
                 /* Add your code here */
                 /* ....... */
                 
             } else {
-                // Read stored hash_index from register
+                // Read stored hash_index from the corresponding switch register
                 /* Add your code here */
                 /* ....... */
                 
             }
 
-            // Write timestamp to register
+            // Write timestamp to the corresponding switch register
             /* Add your code here */
             /* ....... */
 

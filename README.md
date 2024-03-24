@@ -15,7 +15,7 @@ git clone --recurse-submodules <your repository>
 Run `./pull_update.sh` to pull project updates (if any). You might need to merge conflicts manually: most of the time, you just need to accept incoming changes; reach to TF if it is hard to merge. This step also applies to all subsequent projects. 
 
 
-- Project 5 will inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from project 3.
+- In Project 5, we provide you with the skeleton P4 script files (`TODO`), the completed controller script (`Completed`), and the completed topology file (`Completed`), enabling you to build the flowlet on top of that. It will also work if you choose to inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from Project 3.
 - We encourage you to revisit `p4_explanation.md` in project 3 for references if you incur P4 related questions in this project.
 
 ## Introduction
@@ -25,8 +25,7 @@ We implemented ECMP in Project 3. But one drawback of ECMP is that ECMP may hash
 ## Part One: Flowlet Switching
 
 In this part, you are expected to implement flowlet switching. 
-You need to create an initial `p4src/flowlet_switching.p4` based on `p4src/l3fwd.p4`, and modify it to implement flowlet switching. 
-You also need to create an initial `controller/controller_flowlet.py` based on `controller/controller_fat_l3.py`. 
+You need to modify `p4src/flowlet_switching.p4` to implement flowlet switching. 
 
 The original ECMP hashes on 5 tuples of a flow to select paths. Now with flowlets, we hash on not only the 5 tuples of a flow but also its flowlet IDs so we can select different paths for flowlets of the same flow. Here is the concrete workflow:
 
@@ -88,9 +87,9 @@ python controller/controller_flowlet.py
 ```
 3. Testing connectivity:
 - Run `pingall`.
-4. Testing ECMP:
+4. In the first testing script, it starts multiple flows in the network. If your setup effectively balances the traffic between different flows, as intended with original ECMP, then you should pass this test:
 - Run `sudo python3 tests/validate_ecmp.py`. 
-5. Testing Flowlet ECMP:
+5. The second testing script tests Flowlet-based ECMP. Each test case involves only one flow at a time. If your implementation of Flowlet ECMP is accurate, you should be able to pass this test:
 - Run `sudo python3 tests/validate_flowlet.py`. 
 
 
