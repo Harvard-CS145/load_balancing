@@ -4,6 +4,8 @@
 
 - Understand the concept of flowlets and detect flowlets in real-traffic
 - Understand the benefits of flowlet based load balancing
+- Implementing the [CONGA](https://people.csail.mit.edu/alizadeh/papers/conga-sigcomm14.pdf) load balancing algorithm.
+- Understand the benefits of congestion aware load balancing
 
 ## Getting Started
 
@@ -21,6 +23,42 @@ Run `./pull_update.sh` to pull project updates (if any). You might need to merge
 ## Introduction
 
 We implemented ECMP in Project 3. But one drawback of ECMP is that ECMP may hash two large flows onto the same path, which causes congestion. The purpose of this project is to divide large flows into smaller *flowlets* and run load balancing based on those flowlets (instead of flows). Flowlet switching leverages the burstness of TCP flows to achieve better load balancing. TCP flows tend to come in bursts (because TCP is window based). Every time there is gap which is big enough (e.g., 50ms) between packets from the same flow, flowlet switching will rehash the flow to another path (by hashing an flowlet ID value together with the 5-tuple). For more information about flowlet switching check out this [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-vanini.pdf).
+
+
+## Part 0: Observing the problem
+
+In this part, we use a `Medium topology` as illustrated in the following figure:
+![medium topology](images/MediumTopologyDiagram.png)
+The bandwidth of each link is 2 Mbps.
+
+We send flows from h1 to h5, from h2 to h6, from h3 to h7, and from h4 to h8. Each flow has four different potential paths to travel on. Let's first use the provided code and observe how flows collide.
+
+1. Start the medium size topology:
+
+   ```bash
+   sudo p4run --config topology/p4app-medium.json
+   ```
+
+2. Open a `tmux` terminal by typing `tmux` (or if you are already using `tmux`, open another window and type `tmux`) and run monitoring script (`nload_tmux_medium.sh`). This script uses `tmux` to create a window with 4 panes. In each pane it launches a `nload` session with a different interface (`s2-eth1`, `s3-eth1`, `s4-eth1`, and `s5-eth1`). These interfaces directly connect `s2-s5` to `s1`. `nload`, which has already been installed in our provided VM, is a console application which monitors network traffic and bandwidth usage in real time.
+
+   ```bash
+   tmux
+   ./nload_tmux_medium.sh
+   ```
+
+3. Send traffic from `h1-h4` to `h5-h8` (Make sure that you have run `make` in apps/traffic_generator). Send the trace using this command.
+
+   ```bash
+   sudo apps/send_traffic.py --trace ./apps/trace/project5_onetoone.trace --protocol udp
+   ```
+
+   If each flow gets placed to a different path (very unlikely) you should get a bandwidth close to `2Mbps` (which is the link bandwidth). In the example below, after trying once, we got 2 flows colliding in the same path, and thus they get ~1 Mbps, and only two flows get full bandwidth:
+
+<p align="center">
+<img src="images/part1_screenshot.png" title="Bandwidth example">
+<p/>
+
+One way of solving this problem is to provide fine-grained load balancing to avoid congestion.
 
 ## Part One: Flowlet Switching
 
