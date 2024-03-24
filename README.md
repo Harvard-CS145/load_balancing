@@ -7,9 +7,16 @@
 
 ## Getting Started
 
+To start this project, you will first need to get the [infrastructure setup](https://github.com/minlanyu/cs145-site/blob/spring2024/infra.md) and clone this repository with submodules
+```
+git clone --recurse-submodules <your repository>
+```
+
+Run `./pull_update.sh` to pull project updates (if any). You might need to merge conflicts manually: most of the time, you just need to accept incoming changes; reach to TF if it is hard to merge. This step also applies to all subsequent projects. 
+
+
 - Project 5 will inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from project 3.
 - We encourage you to revisit `p4_explanation.md` in project 3 for references if you incur P4 related questions in this project.
-- Run `git submodule update --init --recursive` before you start
 
 ## Introduction
 
@@ -178,6 +185,4 @@ The total grades is 100:
 
 ### Survey
 
-Please fill up the survey when you finish your project.
-
-[Survey link](https://docs.google.com/forms/d/e/1FAIpQLScSSYESF2hRb9SxlkzsuGqgxShJRcUoaorLN35tFNeqwRpMeA/viewform?usp=sf_link)
+Please fill out the Canvas survey after completing this project. 2 extra points will be given once you have finished it. 
