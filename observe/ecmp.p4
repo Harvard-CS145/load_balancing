@@ -3,8 +3,8 @@
 #include <v1model.p4>
 
 //My includes
-#include "include/headers.p4"
-#include "include/parsers.p4"
+#include "ecmp_include/headers.p4"
+#include "ecmp_include/parsers.p4"
 
 /*************************************************************************
 ************   C H E C K S U M    V E R I F I C A T I O N   *************

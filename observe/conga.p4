@@ -3,8 +3,8 @@
 #include <v1model.p4>
 
 //My includes
-#include "include/headers_solution.p4"
-#include "include/parsers_solution.p4"
+#include "conga_include/headers.p4"
+#include "conga_include/parsers.p4"
 
 #define REGISTER_SIZE 1024
 #define REGISTER_WIDTH 32
