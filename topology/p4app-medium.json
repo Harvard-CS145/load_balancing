@@ -1,5 +1,5 @@
 {
-  "p4_src": "p4src/observe.p4",
+  "p4_src": "observe/main.p4",
   "cli": true,
   "pcap_dump": true,
   "enable_log": true,
