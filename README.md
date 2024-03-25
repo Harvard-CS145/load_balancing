@@ -1,10 +1,10 @@
-# Project 5: Flowlet-based Load Balancing
+# Project 5: Flowlet and congestion-aware Load Balancing
 
 ## Objectives
 
 - Understand the concept of flowlets and detect flowlets in real-traffic
 - Understand the benefits of flowlet based load balancing
-- Implementing the [CONGA](https://people.csail.mit.edu/alizadeh/papers/conga-sigcomm14.pdf) load balancing algorithm.
+- Understand the [CONGA](https://people.csail.mit.edu/alizadeh/papers/conga-sigcomm14.pdf) load balancing algorithm.
 - Understand the benefits of congestion aware load balancing
 
 ## Getting Started
@@ -200,6 +200,53 @@ For more information about pcap, please refer to [pcap for Tcpdump page](https:/
 One critical parameter in flowlet switching is the flowlet timeout , which impacts the performance of flowlet switching a lot. You can explore the impact of different timeout values based on this flowlet [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-vanini.pdf).
 For example, you can draw a figure with different flowlet timeout values as x-axis, and corresponding iperf average throughput as y-axis. Write down your findings and embed the figure in your `report.md`. 
 
+
+## Part Three: Is ECMP enough?
+
+Consider the following asymmetric topology:
+
+![asym topology](images/AsymmetricTopologyDiagram.png)
+
+We send 4.8 Mbps of TCP traffic from `h1` to `h2`, which consists of eight 600Kbps TCP flows.  
+ECMP would split the flow evenly, leading to underutilization of the upper path(through s2), and packet loss on the lower path(through s3). However, a better congestion aware system (CONGA) should shift traffic to allow for efficient utilization of the bandwidth, for example, where 1.6 Mbps is sent through s3 while 3.2 Mbps is sent through s2, where the bandwidth is higher.
+
+In this section, we provide you with a congestion-aware system (CONGA) and use an example to demonstrate how your traffic balancer could perform better than ECMP in an asymmetric topology. Please also read about how CONGA works and is developed; check [here](https://github.com/Harvard-CS145/cs145-23-project6) for more details, even though we do not ask you to implement it step-by-step.
+
+**Note:** Be sure to monitor your CPU utilization during this process. If the cpu utilization gets too high, scale down the bandwidths of the links and of your traffic generator. This should minimize any unexpected behavior during the test.
+
+There are some steps you need to complete before comparing these two systems.
+
+1. Copy over the P4 code and the routing controller code of your ECMP implementation in project3. 
+
+2. Modify the routing controller to accommodate the new topology.
+
+
+### Testing
+
+1. Edit the configuration file of the asymmetric topology(`topology/p4app-asym.json`) to run your ECMP code, and also your ECMP controller.
+
+2. Start the asymmetric topology, which connects 2 hosts with two different paths, but the paths have an asymmetric distribution of bandwidth:
+
+   ```bash
+   sudo p4run --config topology/p4app-asym.json
+   ```
+
+3. Send traffic from `h1` to `h2`. There is a script that sends traffic for you automatically. This script sends eight 600 Kbps flows from h1 to h2.
+
+   ```bash
+   sudo python send_traffic_asym.py
+   ```
+
+4. If you would like to stop the traffic, kill all the traffic generators with this command:
+
+   ```bash
+   sudo killall iperf3
+   ```
+
+Next, try running the topology with your conga.p4 code and the corresponding routing controller.
+
+In your report, please show the performance reported from `send_traffic_asym.py` between ECMP and CONGA and compare their performance difference. Please provide detailed explanations for your observations in the report.
+
 ## Submission and Grading
 
 ### What to Submit
@@ -215,8 +262,9 @@ You are expected to submit the following documents:
 The total grades is 100:
 
 - 30: For your description of how you program in `report.md`.
-- 70: We will check the correctness of your solutions for flowlet switching.
+- 50: We will check the correctness of your solutions for flowlet switching.
 - **10**: Extra credit for exploring different flowlet timeout value. 
+- 20: Describe the comparison results and explain how congestion awareness contributes to better load balancing.
 - Deductions based on late policies
 
 
