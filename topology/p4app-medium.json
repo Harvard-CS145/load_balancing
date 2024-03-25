@@ -5,7 +5,7 @@
   "enable_log": true,
     "exec_scripts": [
     {
-      "cmd": "python routing-controller.py",
+      "cmd": "python observe/routing-controller.py",
       "reboot_run": true
     }
   ],
