@@ -9,7 +9,7 @@ import time
 from p4utils.utils.helper import load_topo
 from subprocess import Popen
 import sys
-
+import subprocess
 
 
 if len(sys.argv) == 3:
@@ -24,7 +24,7 @@ topo = load_topo("topology.json")
 iperf_send = "mx {0} iperf3 -c {1} -b 600K -l 1000 -t {2} --bind {3} -p {4} --cport {5} 2>&1 > log/iperf_client_{6}.log"
 iperf_recv = "mx {0} iperf3 -s -p {1} --one-off 2>&1 > log/iperf_server_{2}.log"
 
-Popen("sudo killall iperf iperf3", shell=True)
+subprocess.Popen("sudo killall iperf iperf3", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 used_ports = []
 c_ports = []
