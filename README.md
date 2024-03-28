@@ -252,7 +252,7 @@ In your report, please show the performance reported from `send_traffic_asym.py`
 
 You are expected to submit the following documents:
 
-1. Code: The main P4 code should be in `p4src/flowlet_switching.p4`, while you can also use other file to define headers or parsers, in order to reduce the length of each P4 file; The controller code should be in `controller_flowlet.py` which fills in table entries when launching those P4 switches.
+1. Code: The main P4 code should be in `p4src/flowlet_switching.p4`, while you can also use other file to define headers or parsers, in order to reduce the length of each P4 file; 
 
 2. report/report.md: You should describe how you implement flowlet switching and provide a detailed report on performance analysis as described above in `report.md`. You might include your findings and figure if you choose to explore different flowlet timeout value.
 
