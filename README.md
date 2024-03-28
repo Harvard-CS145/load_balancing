@@ -207,22 +207,22 @@ Consider the following asymmetric topology:
 
 ![asym topology](images/AsymmetricTopologyDiagram.png)
 
-Let's say we send 4.8 Mbps of TCP traffic from `h1` to `h2`, which consists of eight 600Kbps TCP flows. ECMP would split the flow evenly, leading to underutilization of the upper path(through s2), and packet loss on the lower path(through s3). However, a better congestion aware system (CONGA) should shift traffic to allow for efficient utilization of the bandwidth, for example, where 1.6 Mbps is sent through s3 while 3.2 Mbps is sent through s2, where the bandwidth is higher.
+Let's say we send 4.8 Mbps of TCP traffic from `h1` to `h2`, which consists of eight 600Kbps TCP flows. ECMP/Flowlet-based ECMP would split the flow evenly, leading to underutilization of the upper path(through s2), and packet loss on the lower path(through s3). However, a better congestion aware system (CONGA) should shift traffic to allow for efficient utilization of the bandwidth, for example, where 1.6 Mbps is sent through s3 while 3.2 Mbps is sent through s2, where the bandwidth is higher.
 
-In this section, we provide you with a congestion-aware system (CONGA) and use an example to demonstrate how your traffic balancer could perform better than ECMP in an asymmetric topology. Please also read and learn about how CONGA works and is developed; check [here](https://github.com/Harvard-CS145/conga/tree/solution) for more details, even though we do not ask you to implement it step-by-step.
+In this section, we provide you with a congestion-aware system (CONGA) and use an example to demonstrate how your traffic balancer could perform better than ECMP/Flowlet-based ECMP in an asymmetric topology. Please also read and learn about how CONGA works and is developed; check [here](https://github.com/Harvard-CS145/conga/tree/solution) for more details, even though we do not ask you to implement it step-by-step.
 
 **Note:** Be sure to monitor your CPU utilization during this process. If the cpu utilization gets too high, scale down the bandwidths of the links and of your traffic generator. This should minimize any unexpected behavior during the test.
 
 There are some steps you need to complete before comparing these two systems.
 
-1. Copy over the P4 code and the routing controller code of your ECMP implementation in project3. 
+1. Copy over the P4 code and the routing controller code of your ECMP/Flowlet-based ECMP implementation in project3. 
 
 2. Modify the routing controller to accommodate the new topology.
 
 
 ### Testing
 
-1. Edit the configuration file of the asymmetric topology(`topology/p4app-asym.json`) to run your ECMP code, and also your ECMP controller.
+1. Edit the configuration file of the asymmetric topology(`topology/p4app-asym.json`) to run your ECMP/Flowlet-based ECMP code, and also your ECMP/Flowlet-based ECMP controller.
 
 2. Start the asymmetric topology, which connects 2 hosts with two different paths, but the paths have an asymmetric distribution of bandwidth:
 
@@ -242,9 +242,9 @@ There are some steps you need to complete before comparing these two systems.
    sudo killall iperf3
    ```
 
-Next, try running the topology with your conga.p4 code and the corresponding routing controller.
+Next, try running the topology with our `observe/conga.p4` code and the corresponding routing controller.
 
-In your report, please show the performance reported from `send_traffic_asym.py` between ECMP and CONGA and compare their performance difference. Please provide detailed explanations for your observations in the report.
+In your report, please show the performance reported from `send_traffic_asym.py` between ECMP/Flowlet-based ECMP and CONGA and compare their performance difference. Please provide detailed explanations for your observations in the report.
 
 ## Submission and Grading
 
