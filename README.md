@@ -58,7 +58,7 @@ We send flows from h1 to h5, from h2 to h6, from h3 to h7, and from h4 to h8. Ea
 <img src="images/part1_screenshot.png" title="Bandwidth example">
 <p/>
 
-One way of solving this problem is to provide fine-grained load balancing to avoid congestion.
+One way of solving this problem is to provide fine-grained load balancing to avoid hotspot congestion.
 
 ## Part One: Flowlet Switching
 
