@@ -17,7 +17,7 @@ git clone --recurse-submodules <your repository>
 Run `./pull_update.sh` to pull project updates (if any). You might need to merge conflicts manually: most of the time, you just need to accept incoming changes; reach to TF if it is hard to merge. This step also applies to all subsequent projects. 
 
 
-- In Project 5, we provide you with the skeleton P4 script files (`TODO`), the completed controller script (`Completed`), and the completed topology file (`Completed`), enabling you to build the flowlet on top of that. It will also work if you choose to inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from Project 3.
+- In Project 5, we provide you with the skeleton P4 script files (`Imcompleted`), the completed controller script (`Completed`), and the completed topology file (`Completed`), enabling you to build the flowlet on top of that. It will also work if you choose to inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from Project 3.
 - We encourage you to revisit `p4_explanation.md` in project 3 for references if you incur P4 related questions in this project.
 
 ## Introduction
@@ -201,16 +201,15 @@ One critical parameter in flowlet switching is the flowlet timeout , which impac
 For example, you can draw a figure with different flowlet timeout values as x-axis, and corresponding iperf average throughput as y-axis. Write down your findings and embed the figure in your `report.md`. 
 
 
-## Part Three: Is ECMP enough?
+## Part Three: Is Flowlet-based ECMP Enough for Load Balancing?
 
 Consider the following asymmetric topology:
 
 ![asym topology](images/AsymmetricTopologyDiagram.png)
 
-We send 4.8 Mbps of TCP traffic from `h1` to `h2`, which consists of eight 600Kbps TCP flows.  
-ECMP would split the flow evenly, leading to underutilization of the upper path(through s2), and packet loss on the lower path(through s3). However, a better congestion aware system (CONGA) should shift traffic to allow for efficient utilization of the bandwidth, for example, where 1.6 Mbps is sent through s3 while 3.2 Mbps is sent through s2, where the bandwidth is higher.
+Let's say we send 4.8 Mbps of TCP traffic from `h1` to `h2`, which consists of eight 600Kbps TCP flows. ECMP would split the flow evenly, leading to underutilization of the upper path(through s2), and packet loss on the lower path(through s3). However, a better congestion aware system (CONGA) should shift traffic to allow for efficient utilization of the bandwidth, for example, where 1.6 Mbps is sent through s3 while 3.2 Mbps is sent through s2, where the bandwidth is higher.
 
-In this section, we provide you with a congestion-aware system (CONGA) and use an example to demonstrate how your traffic balancer could perform better than ECMP in an asymmetric topology. Please also read about how CONGA works and is developed; check [here](https://github.com/Harvard-CS145/cs145-23-project6) for more details, even though we do not ask you to implement it step-by-step.
+In this section, we provide you with a congestion-aware system (CONGA) and use an example to demonstrate how your traffic balancer could perform better than ECMP in an asymmetric topology. Please also read and learn about how CONGA works and is developed; check [here](https://github.com/Harvard-CS145/conga/tree/solution) for more details, even though we do not ask you to implement it step-by-step.
 
 **Note:** Be sure to monitor your CPU utilization during this process. If the cpu utilization gets too high, scale down the bandwidths of the links and of your traffic generator. This should minimize any unexpected behavior during the test.
 
