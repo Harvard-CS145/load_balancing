@@ -1,4 +1,4 @@
-# Project 5: Flowlet and congestion-aware Load Balancing
+# Project 5: Flowlet Load Balancing
 
 ## Objectives
 
