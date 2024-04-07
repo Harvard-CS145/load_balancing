@@ -176,7 +176,7 @@ In this part, let's compare the ECMP performance with flowlet switching (Your so
 
 ### Parsing Pcap Files
 
-When you send traffic, we record all the packets arriving at or leaving all interfaces at all switchees in the pcap files in the `pcap` directory. The name of each pcap file is in this format: `{sw_name}-{intf_name}_{in/out}.pcap`. For example, if the pcap file is `a1-eth1_in.pcap`, the file records all packets **leaving** the `eth1` interface of switch `a1`. If the pcap file is `t2-eth3_out.pcap`, the file records all packets **arriving in** the `eth3` interface of switch `t2`.
+When you send traffic, we record all the packets arriving at or leaving all interfaces at all switchees in the pcap files in the `pcap` directory. The name of each pcap file is in this format: `{sw_name}-{intf_name}_{in/out}.pcap`. For example, if the pcap file is `a1-eth1_in.pcap`, the file records all packets **arriving in** the `eth1` interface of switch `a1`. If the pcap file is `t2-eth3_out.pcap`, the file records all packets **leaving** the `eth3` interface of switch `t2`.
 
 Pcap files are in binary format, so you need to use `tcpdump` to parse those files.
 
