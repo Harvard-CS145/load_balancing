@@ -270,4 +270,4 @@ The total grades is 100:
 
 ### Survey
 
-Please fill out the Canvas survey after completing this project. 2 extra points will be given once you have finished it. 
+Please fill up the survey when you finish your project: [Survey link](https://forms.gle/z3p9tYNnfpDP4zVE7).
