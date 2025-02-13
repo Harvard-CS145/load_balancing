@@ -249,6 +249,15 @@ In your report, please show the performance reported from `send_traffic_asym.py`
 
 ## Submission and Grading
 
+### Submit your work
+
+You are expected to tag the version you would like us to grade on using following commands and push it to your own repo. You can learn from [this tutorial](https://git-scm.com/book/en/v2/Git-Basics-Tagging) on how to use git tag command. This command will record the time of your submission for our grading purpose.
+
+```bash
+git tag -a submission -m "Final Submission"
+git push --tags
+```
+
 ### What to Submit
 
 You are expected to submit the following documents:
