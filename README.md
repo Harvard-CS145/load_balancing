@@ -13,8 +13,7 @@ To start this project, you will first need to get the [infrastructure setup](htt
 git clone --recurse-submodules <your repository>
 ```
 
-Run `./pull_update.sh` to pull project updates (if any). You might need to merge conflicts manually: most of the time, you just need to accept incoming changes; reach to TF if it is hard to merge. This step also applies to all subsequent projects. 
-
+When there are updates to the starter code, TFs will open pull requests in your repository. You should merge the pull request and pull the changes back to local. You might need to resolve conflicts manually (either when merging PR in remote or pulling back to local). However, most of the times there shouldn't be too much conflict as long as you do not make changes to test scripts, infrastructures, etc. Reach out to TF if it is hard to merge.
 
 - In Project 5, we provide you with the skeleton P4 script files (`Imcompleted`), the completed controller script (`Completed`), and the completed topology file (`Completed`), enabling you to build the flowlet on top of that. It will also work if you choose to inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from Project 3.
 - We encourage you to revisit `p4_explanation.md` in project 3 for references if you incur P4 related questions in this project.
