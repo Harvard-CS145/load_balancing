@@ -15,12 +15,12 @@ git clone --recurse-submodules <your repository>
 
 When there are updates to the starter code, TFs will open pull requests in your repository. You should merge the pull request and pull the changes back to local. You might need to resolve conflicts manually (either when merging PR in remote or pulling back to local). However, most of the times there shouldn't be too much conflict as long as you do not make changes to test scripts, infrastructures, etc. Reach out to TF if it is hard to merge.
 
-- In Project 5, we provide you with the skeleton P4 script files (`Imcompleted`), the completed controller script (`Completed`), and the completed topology file (`Completed`), enabling you to build the flowlet on top of that. It will also work if you choose to inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from Project 3.
+- In Project 5, we provide you with a skeleton P4 source file (`p4src/flowlet_switching.p4`), a completed topology file (`topology/p4app_fat_flowlet.json`) that implements a k=4 fat tree topology, and a completed controller script (`controller/controller_flowlet_fattree.py`) corresponding to the k=4 fat tree topology. You are expected to build your flowlet implementation on top of these files. However, it will also work if you choose to inherit your `p4src/l3fwd.p4`, `topology/p4app_fat.json` (Fattree with k=4), and `controller/controller_fat_l3.py` files from Project 3.
 - We encourage you to revisit `p4_explanation.md` in project 3 for references if you incur P4 related questions in this project.
 
 ## Introduction
 
-We implemented ECMP in Project 3. But one drawback of ECMP is that ECMP may hash two large flows onto the same path, which causes congestion. The purpose of this project is to divide large flows into smaller *flowlets* and run load balancing based on those flowlets (instead of flows). Flowlet switching leverages the burstness of TCP flows to achieve better load balancing. TCP flows tend to come in bursts (because TCP is window based). Every time there is gap which is big enough (e.g., 50ms) between packets from the same flow, flowlet switching will rehash the flow to another path (by hashing an flowlet ID value together with the 5-tuple). For more information about flowlet switching check out this [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-vanini.pdf).
+We implemented ECMP in Project 3. But one drawback of ECMP is that ECMP may hash two large flows onto the same path, which causes congestion. The purpose of this project is to divide large flows into smaller *flowlets* and run load balancing based on those flowlets (instead of flows). Flowlet switching leverages the burstness of TCP flows to achieve better load balancing. TCP flows tend to come in bursts (because TCP is window based). Every time there is gap which is big enough (e.g., 50ms) between packets from the same flow, flowlet switching will rehash the flow to another path (by hashing a flowlet ID value together with the 5-tuple). For more information about flowlet switching check out this [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-vanini.pdf).
 
 
 ## Part 0: Observing the problem
@@ -34,10 +34,10 @@ We send flows from h1 to h5, from h2 to h6, from h3 to h7, and from h4 to h8. Ea
 1. Start the medium size topology:
 
    ```bash
-   sudo p4run --config topology/p4app-medium.json
+   sudo p4run --config topology/p4app_medium.json
    ```
 
-2. In a new terminal window, open a `tmux` terminal by typing `tmux` (or if you are already using `tmux`, open another window and type `tmux`) and run monitoring script (`nload_tmux_medium.sh`). This script uses `tmux` to create a window with 4 panes. In each pane it launches a `nload` session with a different interface (`s2-eth1`, `s3-eth1`, `s4-eth1`, and `s5-eth1`). These interfaces connect the switches `s2`, `s3`, `s4`, and `s5` to the switch `s1`. `nload`, which has already been installed in our provided VM, is a console application which monitors network traffic and bandwidth usage in real time.
+2. In a new terminal window, open a `tmux` terminal by typing `tmux` (or if you are already using `tmux`, open another window and type `tmux`) and run monitoring script (`nload_tmux_medium.sh`). This script uses `tmux` to create a window with 4 panes. In each pane it launches a `nload` session with a different interface (`s2-eth1`, `s3-eth1`, `s4-eth1`, and `s5-eth1`). These interfaces connect the switches `s2`, `s3`, `s4`, and `s5` to the switch `s1`. `nload` is a console application which monitors network traffic and bandwidth usage in real time. You can run `sudo apt install nload` to first ensure that `nload` has been installed in our provided VM. Then you can start monitoring in a new terminal window:
 
    ```bash
    tmux
@@ -50,11 +50,13 @@ We send flows from h1 to h5, from h2 to h6, from h3 to h7, and from h4 to h8. Ea
    sudo apps/send_traffic.py --trace ./apps/trace/project5_onetoone.trace --protocol udp
    ```
 
-   If each flow gets placed to a different path (very unlikely) you should get the average bandwidth close to `2Mbps` (which is the link bandwidth). In the example below, after trying once, we got 2 flows colliding on the same path (via s2), and the other two flow going via s3 and s5 thereby leaving the path via s4 underutilized:
+   If each flow gets placed to a different path (very unlikely) you should get the average bandwidth close to `2Mbps` (which is the link bandwidth). In the example below, after trying once, we got 2 flows colliding on the same path (via s2), and the other two flows going via s3 and s5 thereby leaving the path via s4 underutilized:
 
 <p align="center">
 <img src="images/part1_screenshot.png" title="Bandwidth example">
 <p/>
+
+You may send the traffic a few times to see how ECMP hashing can result in different load balancing each time. 
 
 One way of solving this problem is to provide fine-grained load balancing to avoid hotspot congestion.
 
@@ -63,16 +65,22 @@ One way of solving this problem is to provide fine-grained load balancing to avo
 In this part, you are expected to implement flowlet switching. 
 You need to modify `p4src/flowlet_switching.p4` to implement flowlet switching. 
 
+> [!NOTE]
+> The P4 source code only describes the data plane implementation of an *individual* switch and is typically independent of the network topology.
+
 The original ECMP hashes on 5 tuples of a flow to select paths. Now with flowlets, we hash on not only the 5 tuples of a flow but also its flowlet IDs so we can select different paths for flowlets of the same flow. Here is the concrete workflow:
 
 1. We identify flowlets by maintaining the timestamp of the last seen packet of each 5-tuple flow. You can use `standard_metadata.ingress_global_timestamp` to get the current timestamp (in micro-second) in the P4 switch. You can maintain these timestamps for each flow in a hash table. You may consider setting a large hash table size, e.g, 8192, so that you do not need to handle hash collision.
 2. We define the flowlet timeout as how long a flowlet remains active. If the next packet takes more than the flowlet timeout time to arrive, we treat it as the start of a new flowlet. We suggest you set flowlet timeout as **50ms** in your experiments. Whenever the difference between the current timestamp and the last timestamp is larger than the gap, then you should treat the packet as the starting packet of a new flowlet.
-3. For each new flowlet, assign it with a random flowlet ID. A large flow can have many flowlets sometimes even over a thousand. Register width of 16 bits should be fine for storing a flowlet ID. Anything larger also should not be an issue. You can use `random(val, (bit<32>)0, (bit<32>)65000)` to get a random number from 0 to 65000, and the value is written to `val`.
-4. Use hash function to compute hash value for a combination of five tuples and the flowlet ID. Then use the hash value as the new ecmp group ID (due to modulo, this new ID might be the same as the old one; but overall, flowlets are distributed among all path evenly). This new ECMP group ID determines which port the switch forwards this packet to. 
+3. For each new flowlet, assign it with a random flowlet ID. A large flow can have many flowlets sometimes even over a thousand. Register width of 16 bits should be sufficient for storing a flowlet ID. Anything larger also should not be an issue. You can use `random(val, (bit<32>)0, (bit<32>)65000)` to get a random number from 0 to 65000, and the value is written to `val`.
+4. Use a hash function to compute hash value for a combination of five tuples and the flowlet ID. Then use the hash value to select the port (and thus the path) the switch forwards this packet to. Due to modulo, this new hash value might be the same as the old one; but overall, flowlets are distributed among all paths evenly.
 5. Consider whether or not to modify the controller code.
 
+> [!TIP]
+> Before you jump into implementing flowlet switching, take a moment to see the provided controller code `controller/controller_flowlet_fattree.py` to better understand the functionality of the P4 tables provided in the P4 code skeleton (`p4src/flowlet_switching.p4`).
+
 ## Hints
-This code snippet provides an example of how to use registers in P4. We read from a register, compare its value with the packet's ingress global timestamp, and write the timestamp back to the register.
+This code snippet provides an example of how to use registers in P4. We read from a register, compare its value with the packet's ingress global timestamp, and write the timestamp back to the register. Note that this example logic is different than what is required above.
 
 ```C
 control MyIngress(inout headers hdr, inout metadata meta,
@@ -103,20 +111,20 @@ control MyIngress(inout headers hdr, inout metadata meta,
 ```
 
 ### Testing
-Your code should work for the following testing. These are also good steps for debugging.
-1. Run your `p4src/flowlet_switching.p4`
+Your code should work for the following testing in a k=4 fat tree topology. These are also good steps for debugging.
+1. Run your `p4src/flowlet_switching.p4` in a k=4 fat tree topology
 ```
 sudo p4run --conf topology/p4app_fat_flowlet.json
 ```
 2. Start your controller
 ```
-./controller/controller_flowlet.py
+./controller/controller_flowlet_fattree.py
 ```
 3. **Testing connectivity:**
 - Run `pingall`.
 4. **Testing standard ECMP:** Note that in the absence of any flowlet gaps, flowlet switching essentially turns into ECMP. The first testing script runs multiple short flows (duration ~100ms) in the network. If your setup effectively balances the traffic from different flows onto different paths, as intended with original ECMP, then you should pass this test:
 - Run `sudo python3 tests/validate_ecmp.py`. 
-5. **Flowlet-based ECMP:** The second testing script tests Flowlet-based ECMP. Each test case involves only one long flow at a time that runs across pods i.e. the flow end-points are in different pods. If your implementation of Flowlet ECMP is accurate, you should be able to pass this test:
+5. **Flowlet-based ECMP:** The second testing script tests Flowlet-based ECMP. Each test case involves only one long flow at a time that runs across pods i.e. the flow end-points are in different pods of the fat tree topology. If your implementation of Flowlet ECMP is accurate, you should be able to pass this test:
 - Run `sudo python3 tests/validate_flowlet.py`. 
 
 
@@ -179,14 +187,14 @@ In this part, let's compare the ECMP performance with flowlet switching (Your so
    ```
    2. Start your controller
    ```
-   ./controller/controller_flowlet.py
+   ./controller/controller_flowlet_fattree.py
    ```
    3. Send two iPerf flows with our provided script. (Flow 1: from h1 to h13, and Flow 2: from h3 to h16).
    ```
    sudo python3 apps/project5_send_traffic.py [duration_in_seconds] [random_seed] 
    ```
    While you can try different values of the `random_seed`, be sure to test the value(s) that led to flow collision with standard ECMP above. 
-   4. You can check the iperf throughput values in the `log` directory as explained above (last line of `iperf_server_0.log` and `iperf_server_1.log`) to verify if the throughput drops and the two flows have collided.
+   4. You can check the iperf throughput values in the `log` directory as explained above (last line of `iperf_server_0.log` and `iperf_server_1.log`) to check if the throughput drops or not with flowlet load balancing.
 
 3. Report the throughput of both flows in Step 1 and Step 2. In the report, write down the reasons on why you see the throughput difference. 
 
@@ -230,44 +238,50 @@ Consider the following asymmetric topology:
 
 ![asym topology](images/AsymmetricTopologyDiagram.png)
 
-Let's say we send 4.8 Mbps of TCP traffic from `h1` to `h2`, which consists of eight 600Kbps TCP flows. ECMP would split the flow evenly, leading to underutilization of the upper path(through s2), and packet loss on the lower path(through s3). However, a better congestion aware system (flowlet) should shift traffic to allow for efficient utilization of the bandwidth, for example, where 1.6 Mbps is sent through s3 while 3.2 Mbps is sent through s2, where the bandwidth is higher.
+Let's say we send 4.8 Mbps of TCP traffic from `h1` to `h2`, which consists of eight 600Kbps TCP flows. ECMP would split the flow evenly, leading to underutilization of the upper path (through s2), and packet loss on the lower path (through s3). However, a better congestion aware system (flowlet) should shift traffic to allow for efficient utilization of the bandwidth, for example, where 1.6 Mbps is sent through s3 while 3.2 Mbps is sent through s2, where the bandwidth is higher.
 
-In this section, you need to demonstrate how your flowlet traffic balancer could perform better than ECMP in an asymmetric topology. 
+In this section, you need to experiment and check if your flowlet traffic balancer could perform better than ECMP in an asymmetric topology. 
 
-**Note:** Be sure to monitor your CPU utilization during this process. If the cpu utilization gets too high, scale down the bandwidths of the links and of your traffic generator. This should minimize any unexpected behavior during the test.
+**Note:** Be sure to monitor your CPU utilization during this process. If the CPU utilization gets too high, scale down the bandwidths of the links and of your traffic generator. This should minimize any unexpected behavior during the test.
 
-There are some steps you need to complete before comparing these two systems.
+Before comparing these two systems, you will need to first adapt your flowlet ECMP to accommodate the new topology. Your `p4src/flowlet_switching.p4` implementation should remain unchanged and you should only require to write a new routing controller (`controller/controller_flowlet_asym.py`) to accommodate the new topology. To do so: 
 
-1. Copy over the P4 code and the routing controller code of your ECMP implementation in project3. 
+1. Start the asymmetric topology with the flowlet P4 implementation and use the Mininet initial output to check the IP addresses of `h1` and `h2` as well as the port mapping and link connections on the switches:
 
-2. Modify the routing controller to accommodate the new topology.
+   `sudo p4run --config topology/p4app_asym_flowlet.json`
+   
+   You may use the `links` and `ports` Mininet commands to further understand the topology. 
+
+2. Modify the routing controller template `controller/controller_flowlet_asym.py` based on the above information about the asymmetric topology. You may refer to `controller/controller_flowlet_fattree.py` for guidance on adding rules to the tables.
+
+3. Test basic connectivity between `h1` and `h2` using `pingall` after first starting the asymmetric topology (see the command in step 1 above) and then running the newly written routing controller:
+`./controller/controller_flowlet_asym.py`
 
 
-### Testing
+### Comparison Testing
 
-1. Edit the configuration file of the asymmetric topology(`topology/p4app-asym.json`) to run your ECMP code, and also your ECMP controller.
-
-2. Start the asymmetric topology, which connects 2 hosts with two different paths, but the paths have an asymmetric distribution of bandwidth:
+1. Start the asymmetric topology with standard ECMP:
 
    ```bash
-   sudo p4run --config topology/p4app-asym.json
+   sudo p4run --config topology/p4app_asym_ecmp.json
    ```
+   This command also runs the ECMP routing controller and so you don't need to run it separately.
 
 3. Send traffic from `h1` to `h2`. There is a script that sends traffic for you automatically. This script sends eight 600 Kbps flows from h1 to h2.
 
    ```bash
-   sudo python send_traffic_asym.py
+   sudo python3 send_traffic_asym.py
    ```
 
-4. If you would like to stop the traffic, kill all the traffic generators with this command:
+4. The script should finish in about 60 seconds. If you would like to stop the traffic before that, kill all the traffic generators with this command:
 
    ```bash
    sudo killall iperf3
    ```
 
-Next, try running the topology with your flowlet switching code and the corresponding routing controller.
+Next, run the topology with your flowlet switching code (`topology/p4app_asym_flowlet.json`)  and the corresponding routing controller (`controller/controller_flowlet_asym.py`) and then repeat the traffic test in step 3 above. 
 
-In your report, please show the performance reported from `send_traffic_asym.py` between ECMP and flowlet switching and compare their performance difference. Please provide detailed explanations for your observations in the report.
+In your report, please show the performance reported from `send_traffic_asym.py` between ECMP and flowlet switching and compare their performance difference. Consider running multiple times to prevent reporting a one-off anomalous result due to VM performance issues. Please provide detailed explanations for your observations in the report.
 
 > CONGA is another congestion-aware load balancing technique. Please also read and learn about how CONGA works and is developed; check [here](https://github.com/Harvard-CS145/conga/tree/solution) for more details, even though we do not ask you to implement it step-by-step this year.
 
@@ -286,18 +300,21 @@ git push --tags
 
 You are expected to submit the following documents:
 
-1. Code: The main P4 code should be in `p4src/flowlet_switching.p4`, while you can also use other file to define headers or parsers, in order to reduce the length of each P4 file.
+1. Code: The main P4 code should be in `p4src/flowlet_switching.p4`. The flowlet routing controller corresponding to the asymmetric topology should be in `controller/controller_flowlet_asym.py`. Differing from the provided templates, if you have introduced any other files, please also include them in your submission and *clearly* mention them in your report.
 
-2. report/report.md: You should describe how you implement flowlet switching and provide a detailed report on performance analysis as described above in `report.md`. You might include your findings and figure if you choose to explore different flowlet timeout value.
+2. report/report.md: You should describe how you implemented flowlet switching and provide a detailed report on the performance analyses as described above in `report.md`. You might include your findings and figure if you choose to explore different flowlet timeout value.
 
 ### Grading
 
 The total grades is 100:
 
-- 30: For your description of how you program in `report.md`.
-- 50: We will check the correctness of your solutions for flowlet switching.
+- 20: For your description of how you program in `report.md`.
+- 20: For the correctness of your implementation as per the testing in Part 1. 
+- 18: For performance comparison with ECMP in Part 2.
+- 20: For Pcap trace analysis in Part 2.
 - **10**: Extra credit for exploring different flowlet timeout value. 
-- 20: Describe the comparison results and explain how flowlet congestion awareness contributes to better load balancing.
+- 20: For comparison testing and explanation as required in Part 3.
+- 2: Finish the survey.
 - Deductions based on late policies
 
 
