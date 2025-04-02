@@ -21,6 +21,9 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
+    
+    direct_counter(CounterType.packets_and_bytes) counter_ecmp_group_to_nhop; // for debugging
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -31,8 +34,8 @@ control MyIngress(inout headers hdr,
 	    (bit<1>)0,
 	    { hdr.ipv4.srcAddr,
 	      hdr.ipv4.dstAddr,
-              hdr.udp.srcPort,
-              hdr.udp.dstPort,
+              meta.src_port,
+              meta.dst_port,
               hdr.ipv4.protocol},
 	      num_nhops);
 
@@ -64,6 +67,7 @@ control MyIngress(inout headers hdr,
             set_nhop;
         }
         size = 1024;
+        counters = counter_ecmp_group_to_nhop;
     }
 
     table ipv4_lpm {

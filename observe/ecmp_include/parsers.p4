@@ -25,13 +25,23 @@ parser MyParser(packet_in packet,
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol){
+            6 : parse_tcp;
            17 : parse_udp;
             default: accept;
         }
     }
 
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        meta.src_port = hdr.tcp.srcPort;
+        meta.dst_port = hdr.tcp.dstPort;
+        transition accept;
+    }
+
     state parse_udp {
         packet.extract(hdr.udp);
+        meta.src_port = hdr.udp.srcPort;
+        meta.dst_port = hdr.udp.dstPort;
         transition accept;
     }
 
@@ -49,6 +59,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
         packet.emit(hdr.ipv4);
 
         //Only emited if valid
+        packet.emit(hdr.tcp);
         packet.emit(hdr.udp);
     }
 }
