@@ -37,20 +37,20 @@ We send flows from h1 to h5, from h2 to h6, from h3 to h7, and from h4 to h8. Ea
    sudo p4run --config topology/p4app-medium.json
    ```
 
-2. Open a `tmux` terminal by typing `tmux` (or if you are already using `tmux`, open another window and type `tmux`) and run monitoring script (`nload_tmux_medium.sh`). This script uses `tmux` to create a window with 4 panes. In each pane it launches a `nload` session with a different interface (`s2-eth1`, `s3-eth1`, `s4-eth1`, and `s5-eth1`). These interfaces directly connect `s2-s5` to `s1`. `nload`, which has already been installed in our provided VM, is a console application which monitors network traffic and bandwidth usage in real time.
+2. In a new terminal window, open a `tmux` terminal by typing `tmux` (or if you are already using `tmux`, open another window and type `tmux`) and run monitoring script (`nload_tmux_medium.sh`). This script uses `tmux` to create a window with 4 panes. In each pane it launches a `nload` session with a different interface (`s2-eth1`, `s3-eth1`, `s4-eth1`, and `s5-eth1`). These interfaces connect the switches `s2`, `s3`, `s4`, and `s5` to the switch `s1`. `nload`, which has already been installed in our provided VM, is a console application which monitors network traffic and bandwidth usage in real time.
 
    ```bash
    tmux
    ./nload_tmux_medium.sh
    ```
 
-3. Send traffic from `h1-h4` to `h5-h8` (Make sure that you have run `make` in apps/traffic_generator). Send the trace using this command.
+3. Now let's send traffic from `h1-h4` to `h5-h8`. To do so, in another terminal window, run the following command.
 
    ```bash
    sudo apps/send_traffic.py --trace ./apps/trace/project5_onetoone.trace --protocol udp
    ```
 
-   If each flow gets placed to a different path (very unlikely) you should get a bandwidth close to `2Mbps` (which is the link bandwidth). In the example below, after trying once, we got 2 flows colliding in the same path, and thus they get ~1 Mbps, and only two flows get full bandwidth:
+   If each flow gets placed to a different path (very unlikely) you should get the average bandwidth close to `2Mbps` (which is the link bandwidth). In the example below, after trying once, we got 2 flows colliding on the same path (via s2), and the other two flow going via s3 and s5 thereby leaving the path via s4 underutilized:
 
 <p align="center">
 <img src="images/part1_screenshot.png" title="Bandwidth example">
@@ -58,7 +58,7 @@ We send flows from h1 to h5, from h2 to h6, from h3 to h7, and from h4 to h8. Ea
 
 One way of solving this problem is to provide fine-grained load balancing to avoid hotspot congestion.
 
-## Part One: Flowlet Switching
+## Part 1: Flowlet Switching
 
 In this part, you are expected to implement flowlet switching. 
 You need to modify `p4src/flowlet_switching.p4` to implement flowlet switching. 
@@ -67,45 +67,36 @@ The original ECMP hashes on 5 tuples of a flow to select paths. Now with flowlet
 
 1. We identify flowlets by maintaining the timestamp of the last seen packet of each 5-tuple flow. You can use `standard_metadata.ingress_global_timestamp` to get the current timestamp (in micro-second) in the P4 switch. You can maintain these timestamps for each flow in a hash table. You may consider setting a large hash table size, e.g, 8192, so that you do not need to handle hash collision.
 2. We define the flowlet timeout as how long a flowlet remains active. If the next packet takes more than the flowlet timeout time to arrive, we treat it as the start of a new flowlet. We suggest you set flowlet timeout as **50ms** in your experiments. Whenever the difference between the current timestamp and the last timestamp is larger than the gap, then you should treat the packet as the starting packet of a new flowlet.
-3. For each new flowlet, assign it with a random flowlet ID. A large flow can have many flowlets sometimes even over a thousand. Register with of 16 bits should be fine for storing a flowlet ID. Anything larger also should not be an issue. You can use `random(val, (bit<32>)0, (bit<32>)65000)` to get a random number from 0 to 65000, and the value is written to `val`.
+3. For each new flowlet, assign it with a random flowlet ID. A large flow can have many flowlets sometimes even over a thousand. Register width of 16 bits should be fine for storing a flowlet ID. Anything larger also should not be an issue. You can use `random(val, (bit<32>)0, (bit<32>)65000)` to get a random number from 0 to 65000, and the value is written to `val`.
 4. Use hash function to compute hash value for a combination of five tuples and the flowlet ID. Then use the hash value as the new ecmp group ID (due to modulo, this new ID might be the same as the old one; but overall, flowlets are distributed among all path evenly). This new ECMP group ID determines which port the switch forwards this packet to. 
 5. Consider whether or not to modify the controller code.
 
 ## Hints
-This code snippet provides an example of how to use registers in P4. We read from a register, compare its value with packet global timestamps, and write the timestamp back to the register.
+This code snippet provides an example of how to use registers in P4. We read from a register, compare its value with the packet's ingress global timestamp, and write the timestamp back to the register.
 
-```
-struct metadata {
-    bit<16> register_index;
-}
-
+```C
 control MyIngress(inout headers hdr, inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
     
-    /* Declare a set of registers with a size of 8192 */
+    /* Declare a 48-bit wide register with a size of 8192 */
     register<bit<48>>(8192) my_register;
-
-    /* Define an action to update the registers */
-    action update_register() {
-        bit<48> dst_data;
-        
-        /* Read the content of the register with the index specified in metadata to dst_data */
-        my_register.read(dst_data, (bit<32>)meta.register_index);
-        
-        /* If the stored data in the register has a smaller value compared to the global timestamp */
-        if (standard_metadata.ingress_global_timestamp > dst_data) {
-
-            /* Update the register with the global timestamp value */
-            my_register.write((bit<32>)meta.register_index, standard_metadata.ingress_global_timestamp);
-
-        }
-    }
 
     apply {
         if (hdr.ipv4.isValid()){
             
-            /* Call the update_register action to update the register conditionally */
-            update_register();
+            /* Declare temporary metadata variables to operate on the register */
+            bit<48> reg_data;
+            bit<16> reg_idx = 0; // we want to read/write at index 0 of my_register
+
+            /* Read the content of the register with the index specified in reg_idx to reg_data */
+            my_register.read(dst_data, (bit<32>) reg_idx); // note the bit<32> cast
+            
+            /* If the stored data in the register has a smaller value compared to the global timestamp */
+            if (standard_metadata.ingress_global_timestamp > reg_data) {
+               /* Update the register with the global timestamp value */
+               my_register.write((bit<32>)reg_idx, standard_metadata.ingress_global_timestamp);
+               // NOTE: register read/write operations need the reg_idx to be of bit<32> type
+            }
         }
     }
 }
@@ -119,63 +110,93 @@ sudo p4run --conf topology/p4app_fat_flowlet.json
 ```
 2. Start your controller
 ```
-python controller/controller_flowlet.py
+./controller/controller_flowlet.py
 ```
-3. Testing connectivity:
+3. **Testing connectivity:**
 - Run `pingall`.
-4. In the first testing script, it starts multiple flows in the network. If your setup effectively balances the traffic between different flows, as intended with original ECMP, then you should pass this test:
+4. **Testing standard ECMP:** Note that in the absence of any flowlet gaps, flowlet switching essentially turns into ECMP. The first testing script runs multiple short flows (duration ~100ms) in the network. If your setup effectively balances the traffic from different flows onto different paths, as intended with original ECMP, then you should pass this test:
 - Run `sudo python3 tests/validate_ecmp.py`. 
-5. The second testing script tests Flowlet-based ECMP. Each test case involves only one flow at a time. If your implementation of Flowlet ECMP is accurate, you should be able to pass this test:
+5. **Flowlet-based ECMP:** The second testing script tests Flowlet-based ECMP. Each test case involves only one long flow at a time that runs across pods i.e. the flow end-points are in different pods. If your implementation of Flowlet ECMP is accurate, you should be able to pass this test:
 - Run `sudo python3 tests/validate_flowlet.py`. 
 
 
-## Part Two: Compare Performance
+## Part 2: Compare Performance
 
 In this part, let's compare the ECMP performance with flowlet switching (Your solution in Part One) and without flowlets (Project 3 solution) when network hotspots are encountered. 
 
-1. Run ECMP without flowlet switching. Run your code in project 3:
-    1. Run your `p4src/ecmp.p4`
+1. Run ECMP without flowlet switching. Exit any running Mininet instances and switch to your project 3 directory to run the following steps:
+    1. Run your `p4src/l3fwd.p4` which implements standard ECMP
     ```
-    sudo p4run --conf topology/fat_tree_app_ecmp.json
+    sudo p4run --conf topology/p4app_fattree.json
     ```
     2. Start your controller 
     ```
-    python controller/controller_fat_ecmp.py
+    ./controller/controller_fattree_l3.py
     ```   
     3. Send two iPerf flows with our provided script. (Flow 1: from h1 to h13, and Flow 2: from h3 to h16).
     ```
-    python apps/project5_send_traffic.py [duration_in_seconds] [random_seed] 
+    sudo python3 apps/project5_send_traffic.py [duration_in_seconds] [random_seed] 
     ```
-    The `random_seed` is used to generate random source and destination ports for the two flows. Since the ECMP hashing depends on the ports, you can tune the `random_seed` to make sure the two flows collide and thus generate network hotspot on the collided link. 
+    The `random_seed` is used to generate random source and destination ports for the two flows. Since the ECMP hashing depends on the ports, you can tune the `random_seed` to make sure the two flows collide and thus generate network hotspot on the collided link. For tuning the `random_seed` just try a few different integers (e.g. 0, 1, 5, etc.) until the two flows collide. A duration of 10 seconds is typically sufficient. 
     
-    4. You can check the iperf throughput values in the `log` directory or in the stdout to verify if the chosen paths have collided. The throughput drops significantly when collision happens. 
+    4. You can check the iperf throughput values in the `log` directory to verify if the chosen paths have collided. A flow's average throughput is reported by the iperf server. Therefore, check the last line in both the server log files. For example:
+    ```
+    p4@p4:~/workspace/cs145-25-project3-user$ cat log/iperf_server_0.log
+      -----------------------------------------------------------
+      Server listening on 9829
+      -----------------------------------------------------------
+      Accepted connection from 10.0.0.1, port 34333
+      [  8] local 10.0.0.13 port 9829 connected to 10.0.0.1 port 38327
+      [ ID] Interval           Transfer     Bitrate
+      [  8]   0.00-1.00   sec  56.3 KBytes   461 Kbits/sec
+      <omitted output>
+      [  8]  10.00-10.09  sec  9.23 KBytes   879 Kbits/sec
+      - - - - - - - - - - - - - - - - - - - - - - - - -
+      [ ID] Interval           Transfer     Bitrate
+      [  8]   0.00-10.09  sec   591 KBytes   480 Kbits/sec                  receiver
+      p4@p4:~/workspace/cs145-25-project3-user$ cat log/iperf_server_1.log
+      -----------------------------------------------------------
+      Server listening on 56561
+      -----------------------------------------------------------
+      Accepted connection from 10.0.0.3, port 51195
+      [  8] local 10.0.0.16 port 56561 connected to 10.0.0.3 port 53601
+      [ ID] Interval           Transfer     Bitrate
+      [  8]   0.00-1.00   sec  62.2 KBytes   509 Kbits/sec
+      <omitted output>
+      [  8]   9.00-10.00  sec  73.8 KBytes   605 Kbits/sec
+      - - - - - - - - - - - - - - - - - - - - - - - - -
+      [ ID] Interval           Transfer     Bitrate
+      [  8]   0.00-10.04  sec   601 KBytes   490 Kbits/sec                  receiver
+    ```
+   Here, we see that the two flows have collided since they get a respective throughput of 480kbps and 490kbps which is roughly half the 1Mbps bandwidth of a link in our topology.
 
-**Note**: To get reliable performance numbers for this project (and all future projects that need to measure throughput and latency), you'd better check your VM CPU usage and ensure it's low. You can reduce CPU usage by terminating unnecessarily running applications in your VM and your computer.
+   **Note**: To get reliable performance numbers for this project (and all future projects that need to measure throughput and latency), you'd better check your VM CPU usage (e.g. using `htop`) and ensure it's low. You can reduce CPU usage by terminating unnecessary applications running in your VM and your computer.
 
-2. Run ECMP with flowlet switching. Run your code in Part One in the same way as Step 1. 
+2. Exit any running Mininet instance from project 3 and switch back to this project's directory. Now let's run ECMP with flowlet switching: 
    1. Run your `p4src/flowlet_switching.p4`
    ```
    sudo p4run --conf topology/p4app_fat_flowlet.json
    ```
    2. Start your controller
    ```
-   python controller/controller_flowlet.py
+   ./controller/controller_flowlet.py
    ```
    3. Send two iPerf flows with our provided script. (Flow 1: from h1 to h13, and Flow 2: from h3 to h16).
    ```
-    python apps/project5_send_traffic.py [duration_in_seconds] [random_seed] 
+   sudo python3 apps/project5_send_traffic.py [duration_in_seconds] [random_seed] 
    ```
-   4. You can check the iperf throughput values in the `log` directory or in the stdout to verify if the throughput drops and the chosen paths have collided. Otherwise, change your `random_seed` in step 3. 
+   While you can try different values of the `random_seed`, be sure to test the value(s) that led to flow collision with standard ECMP above. 
+   4. You can check the iperf throughput values in the `log` directory as explained above (last line of `iperf_server_0.log` and `iperf_server_1.log`) to verify if the throughput drops and the two flows have collided.
 
 3. Report the throughput of both flows in Step 1 and Step 2. In the report, write down the reasons on why you see the throughput difference. 
 
 4. We now use the packet level traces collected at switches to understand the throughput difference more. We discuss how to use pcap files to parse packet traces below. Your job is to use the pcap files to answer the following questions in your report.
-   1. List all the flowlets in flow 1 and flow 2 in our Step 2 experiment. You can identify the flowlets based on five tuples and packet timestamps.
-   2. Identify the paths these flowlet takes. What's the percentage of flowlets of flow 1 on each of the four paths? What's the percentage of flowlets of flow 2 on each of the four paths?
+   1. Find the total number of flowlets in flow 1 and flow 2 in our Part 2 experiment. You can identify the flowlets based on five tuples and packet timestamps.
+   2. Identify the paths these flowlets take. What's the percentage of flowlets of flow 1 on each of the four paths? What's the percentage of flowlets of flow 2 on each of the four paths?
 
 ### Parsing Pcap Files
 
-When you send traffic, we record all the packets arriving at or leaving all interfaces at all switchees in the pcap files in the `pcap` directory. The name of each pcap file is in this format: `{sw_name}-{intf_name}_{in/out}.pcap`. For example, if the pcap file is `a1-eth1_in.pcap`, the file records all packets **arriving in** the `eth1` interface of switch `a1`. If the pcap file is `t2-eth3_out.pcap`, the file records all packets **leaving** the `eth3` interface of switch `t2`.
+When you send traffic, we record all the packets arriving at or leaving all interfaces at all switches in the pcap files in the `pcap` directory. The name of each pcap file is in this format: `{sw_name}-{intf_name}_{in/out}.pcap`. For example, if the pcap file is `a1-eth1_in.pcap`, the file records all packets **arriving in** the `eth1` interface of switch `a1`. If the pcap file is `t2-eth3_out.pcap`, the file records all packets **leaving** the `eth3` interface of switch `t2`.
 
 Pcap files are in binary format, so you need to use `tcpdump` to parse those files.
 
@@ -193,13 +214,17 @@ Each field represents timestamp, src MAC address, dst MAC address, ethernet type
 
 For more information about pcap, please refer to [pcap for Tcpdump page](https://www.tcpdump.org/pcap.html).
 
+> [!TIP]
+> To avoid unnecessary packets in the pcap files and get cleaner pcap traces for data analysis:
+> (i) exit any running Mininet network instance; (ii) remove all `*.pcap` files from the pcap directory (you will likely need `sudo`); (iii) run the part 2 flowlet experiment *just once*; (iv) exit the Mininet network instance.
+
 ## Extra Credit 
 
 One critical parameter in flowlet switching is the flowlet timeout , which impacts the performance of flowlet switching a lot. You can explore the impact of different timeout values based on this flowlet [paper](https://www.usenix.org/system/files/conference/nsdi17/nsdi17-vanini.pdf).
 For example, you can draw a figure with different flowlet timeout values as x-axis, and corresponding iperf average throughput as y-axis. Write down your findings and embed the figure in your `report.md`. 
 
 
-## Part Three: Is Flowlet Switching Congestion-Aware?
+## Part 3: Is Flowlet Switching Congestion-Aware?
 
 Consider the following asymmetric topology:
 
