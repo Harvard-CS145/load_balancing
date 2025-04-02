@@ -60,14 +60,14 @@ time.sleep(2)
 for i,port in enumerate(used_ports):
 	Popen(iperf_send.format("h1", topo.get_host_ip("h2"), duration, topo.get_host_ip("h1"), port, c_ports[i], i), shell=True)
 
-print("Waiting for all flows finished")
+print("Waiting for all flows to finish...")
 time.sleep(duration+20)
 
 sum_thpt = 0
 for i in range(num_flows):
     with open("log/iperf_server_{}.log".format(i)) as f:
         tokens = f.readlines()[-1].split()
-        sum_thpt += int(tokens[-3])
+        sum_thpt += float(tokens[-3])
 
 print("Total throughput: {} Kbps".format(sum_thpt))
 
