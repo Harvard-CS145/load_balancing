@@ -51,16 +51,28 @@ header tcp_t{
     bit<16> urgentPtr;
 }
 
+header udp_t{
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<16> len;
+    bit<16> checksum;
+}
+
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
     tcp_t        tcp;
+    udp_t        udp;
 }
 
 struct metadata {
     bit<8> group_num;
     bit<8> buckets_in_group;
     bit<8> hash_index;
+    bit<16> src_port;
+    bit<16> dst_port;
+    bit<16> flow_id;
+    bit<16> flowlet_id;
 }
 
 

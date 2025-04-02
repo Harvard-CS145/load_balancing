@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from p4utils.utils.helper import load_topo
 from p4utils.utils.sswitch_thrift_API import SimpleSwitchThriftAPI
 import sys
@@ -25,7 +27,7 @@ class RoutingController(object):
 
     def set_table_defaults(self):
         for controller in self.controllers.values():
-            controller.table_set_default("dipv4", "drop", [])
+            controller.table_set_default("direct_ipv4", "drop", [])
             controller.table_set_default("group_info_to_port", "drop", [])
 
     def route(self):
@@ -46,10 +48,10 @@ class RoutingController(object):
                     if host_id >= device_id * half_k and host_id < (device_id + 1) * half_k:
                         out_port = self.topo.node_to_node_port_num(
                             sw_name, "h%d" % (host_id + 1,))
-                        controller.table_add("dipv4", "forward", [
+                        controller.table_add("direct_ipv4", "forward", [
                                              "10.0.0.%d" % (host_id + 1,)], ["%d" % (out_port,)])
                     else:
-                        controller.table_add("dipv4", "fill_metadata", ["10.0.0.%d" % (
+                        controller.table_add("direct_ipv4", "fill_metadata", ["10.0.0.%d" % (
                             host_id + 1,)], ["1", "%d" % (half_k * half_k,)])
             elif sw_name[0] == 'a':
                 for core_offset in range(half_k):
@@ -64,10 +66,10 @@ class RoutingController(object):
                     if host_id >= min_host_id and host_id < max_host_id:
                         out_port = self.topo.node_to_node_port_num(
                             sw_name, "t%d" % (host_id // half_k + 1,))
-                        controller.table_add("dipv4", "forward", [
+                        controller.table_add("direct_ipv4", "forward", [
                                              "10.0.0.%d" % (host_id + 1,)], ["%d" % (out_port,)])
                     else:
-                        controller.table_add("dipv4", "fill_metadata", ["10.0.0.%d" % (
+                        controller.table_add("direct_ipv4", "fill_metadata", ["10.0.0.%d" % (
                             host_id + 1,)], ["1", "%d" % (half_k * half_k,)])
             elif sw_name[0] == 'c':
                 for host_id in range(host_num):
@@ -75,7 +77,7 @@ class RoutingController(object):
                     target = "a%d" % (pod_num * half_k +
                                       device_id // half_k + 1,)
                     out_port = self.topo.node_to_node_port_num(sw_name, target)
-                    controller.table_add("dipv4", "forward", [
+                    controller.table_add("direct_ipv4", "forward", [
                                          "10.0.0.%d" % (host_id + 1,)], ["%d" % (out_port,)])
 
     def main(self):

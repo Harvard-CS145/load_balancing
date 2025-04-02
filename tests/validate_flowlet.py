@@ -61,7 +61,7 @@ for i in range(4):
     dev /= len(d)
     dev = math.sqrt(dev)
     dev = dev / avg
-    print("stddev of four links")
+    print("Coefficient of Variance (CV) across the four links:")
     print(dev)
     
     if abs(dev) > 0.3:

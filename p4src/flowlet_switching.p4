@@ -27,6 +27,8 @@ control MyIngress(inout headers hdr,
     register<bit<8>>(FLOW_TABLE_SIZE) flow_to_hash_index;
     register<bit<48>>(FLOW_TABLE_SIZE) flow_to_timestamp;
 
+    direct_counter(CounterType.packets_and_bytes) counter_group_info_to_port; // for debugging
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -40,7 +42,7 @@ control MyIngress(inout headers hdr,
         standard_metadata.egress_spec = egress_port;
     }
 
-    table dipv4 {
+    table direct_ipv4 {
         key = {
             hdr.ipv4.dstAddr: exact;
         }
@@ -67,10 +69,11 @@ control MyIngress(inout headers hdr,
         }
         size = 256;
         default_action = NoAction;
+        counters = counter_group_info_to_port;
     }
 
     apply {
-        dipv4.apply();
+        direct_ipv4.apply();
         if (meta.group_num != 0)  {
             // Find flow index from your incoming packet
             /* Add your hash function here */

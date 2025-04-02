@@ -22,6 +22,7 @@ parser MyParser(packet_in packet,
         packet.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol) {
             6: parse_tcp;
+            17: parse_udp;
             default: accept;
         }
     }
@@ -30,6 +31,11 @@ parser MyParser(packet_in packet,
         packet.extract(hdr.tcp);
         transition accept;
     } 
+
+    state parse_udp {
+        packet.extract(hdr.udp);
+        transition accept;
+    }
 }
 
 /*************************************************************************

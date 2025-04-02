@@ -19,9 +19,9 @@ do
             count=$(($count+1))
             printf "\r%.3f%%" "$(bc -l <<< "(($count*100/240))")"
             port=$(($port+1))
-            ~/mininet/util/m h$server iperf3 -s --port $port 2> /dev/null > /dev/null &
+            /home/p4/mininet/util/m h$server iperf3 -s --port $port 2> /dev/null > /dev/null &
             sleep 0.5
-            ~/mininet/util/m h$client iperf3 -c 10.0.0.$server -t 0.1 --port $port 2> /dev/null > /dev/null &
+            /home/p4/mininet/util/m h$client iperf3 -c 10.0.0.$server -t 0.1 --port $port 2> /dev/null > /dev/null &
             sleep 0.5
             pkill iperf3
         fi
