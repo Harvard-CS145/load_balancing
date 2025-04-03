@@ -79,11 +79,13 @@ control MyIngress(inout headers hdr,
             /* Add your hash function here */
             /* ....... */
 
+
             // Compare your timestamp to previous timestamp stored in the switch
             bit<48> previous_timestamp;
             // read switch's last seen timestamp 
             /* Add your code here */
             /* ....... */
+
 
             // if this is determinted as a new flowlet...
             if (standard_metadata.ingress_global_timestamp - previous_timestamp > FLOWLET_TIME_GAP)  {
@@ -91,17 +93,20 @@ control MyIngress(inout headers hdr,
                 // and write hash_index to the corresponding switch register
                 /* Add your code here */
                 /* ....... */
+
                 
             } else {
                 // Read stored hash_index from the corresponding switch register
                 /* Add your code here */
                 /* ....... */
                 
+                
             }
 
             // Write timestamp to the corresponding switch register
             /* Add your code here */
             /* ....... */
+
 
             // Forward packet
             group_info_to_port.apply();
