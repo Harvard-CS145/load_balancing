@@ -202,6 +202,8 @@ In this part, let's compare the ECMP performance with flowlet switching (Your so
    1. Find the total number of flowlets in flow 1 and flow 2 in our Part 2 experiment. You can identify the flowlets based on five tuples and packet timestamps.
    2. Identify the paths these flowlets take. What's the percentage of flowlets of flow 1 on each of the four paths? What's the percentage of flowlets of flow 2 on each of the four paths?
 
+   You can add the scripts you write for this data analysis to the `analysis` folder along with the corresponding pcap files. Be sure to provide instructions to exercise your scripts in `analysis/analysis.md`.
+
 ### Parsing Pcap Files
 
 When you send traffic, we record all the packets arriving at or leaving all interfaces at all switches in the pcap files in the `pcap` directory. The name of each pcap file is in this format: `{sw_name}-{intf_name}_{in/out}.pcap`. For example, if the pcap file is `a1-eth1_in.pcap`, the file records all packets **arriving in** the `eth1` interface of switch `a1`. If the pcap file is `t2-eth3_out.pcap`, the file records all packets **leaving** the `eth3` interface of switch `t2`.
@@ -302,7 +304,9 @@ You are expected to submit the following documents:
 
 1. Code: The main P4 code should be in `p4src/flowlet_switching.p4`. The flowlet routing controller corresponding to the asymmetric topology should be in `controller/controller_flowlet_asym.py`. Differing from the provided templates, if you have introduced any other files, please also include them in your submission and *clearly* mention them in your report.
 
-2. report/report.md: You should describe how you implemented flowlet switching and provide a detailed report on the performance analyses as described above in `report.md`. You might include your findings and figure if you choose to explore different flowlet timeout value.
+2. Analysis: [Optional but highly recommended] provide your Pcap analysis scripts in the `analysis` directory along with the corresponding Pcap files. Only include the bare minimum Pcap files that you used in your analysis. Add concise instructions in `analysis/analysis.md` to exercise your scripts and reproduce your results.
+
+3. report/report.md: You should describe how you implemented flowlet switching and provide a detailed report on the performance analyses as described above in `report.md`. You might include your findings and figure if you choose to explore different flowlet timeout value.
 
 ### Grading
 
