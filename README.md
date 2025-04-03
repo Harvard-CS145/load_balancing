@@ -202,7 +202,7 @@ In this part, let's compare the ECMP performance with flowlet switching (Your so
    1. Find the total number of flowlets in flow 1 and flow 2 in our Part 2 experiment. You can identify the flowlets based on five tuples and packet timestamps.
    2. Identify the paths these flowlets take. What's the percentage of flowlets of flow 1 on each of the four paths? What's the percentage of flowlets of flow 2 on each of the four paths?
 
-   You can add the scripts you write for this data analysis to the `analysis` folder along with the corresponding pcap files. Be sure to provide instructions to exercise your scripts in `analysis/analysis.md`.
+   You can add the script(s) you write for this data analysis to the `analysis` directory along with the corresponding pcap files. Be sure to provide instructions to exercise your script(s) in `analysis/analysis.md`.
 
 ### Parsing Pcap Files
 
