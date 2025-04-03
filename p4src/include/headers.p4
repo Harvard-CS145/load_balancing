@@ -71,9 +71,4 @@ struct metadata {
     bit<8> hash_index;
     bit<16> src_port;
     bit<16> dst_port;
-    bit<16> flow_id;
-    bit<16> flowlet_id;
 }
-
-
-
